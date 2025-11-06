@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/aufgabe_2.dir/aufgabe_2/code/01_stl.cpp.o CMakeFiles/aufgabe_2.dir/aufgabe_2/code/LineStrip3D.cpp.o -o aufgabe_2

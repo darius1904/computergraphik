@@ -1,0 +1,6 @@
+/Users/darius/stuttgart/Computergraphik/aufgaben_blatt_01/build/CMakeFiles/aufgabe_1.dir
+/Users/darius/stuttgart/Computergraphik/aufgaben_blatt_01/build/CMakeFiles/aufgabe_2.dir
+/Users/darius/stuttgart/Computergraphik/aufgaben_blatt_01/build/CMakeFiles/aufgabe_3.dir
+/Users/darius/stuttgart/Computergraphik/aufgaben_blatt_01/build/CMakeFiles/aufgabe_4.dir
+/Users/darius/stuttgart/Computergraphik/aufgaben_blatt_01/build/CMakeFiles/edit_cache.dir
+/Users/darius/stuttgart/Computergraphik/aufgaben_blatt_01/build/CMakeFiles/rebuild_cache.dir
