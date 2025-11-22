@@ -1,7 +1,0 @@
-/Users/darius/Stuttgart/Computergraphik/aufgaben_blatt_02_/code/build/CMakeFiles/ColorSpaces.dir
-/Users/darius/Stuttgart/Computergraphik/aufgaben_blatt_02_/code/build/CMakeFiles/edit_cache.dir
-/Users/darius/Stuttgart/Computergraphik/aufgaben_blatt_02_/code/build/CMakeFiles/rebuild_cache.dir
-/Users/darius/Stuttgart/Computergraphik/aufgaben_blatt_02_/code/build/CMakeFiles/list_install_components.dir
-/Users/darius/Stuttgart/Computergraphik/aufgaben_blatt_02_/code/build/CMakeFiles/install.dir
-/Users/darius/Stuttgart/Computergraphik/aufgaben_blatt_02_/code/build/CMakeFiles/install/local.dir
-/Users/darius/Stuttgart/Computergraphik/aufgaben_blatt_02_/code/build/CMakeFiles/install/strip.dir
