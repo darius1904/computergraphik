@@ -31,14 +31,15 @@ Copy code
 
 Open **Windows Terminal** and run the following:
 
-``powershell
+```powershell
 cd C:\path\to\your\project
 mkdir build
 cd build
 cmake .. -G "MinGW Makefiles"
 mingw32-make
 .\ImageViewer.exe
-⚡ GPU mode is significantly faster for separated Gaussian filtering.``
+```
+⚡ GPU mode is significantly faster for separated Gaussian filtering.
 
 🖱️ Usage
 GUI Mode
