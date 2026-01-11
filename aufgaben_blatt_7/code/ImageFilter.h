@@ -1,0 +1,421 @@
+#ifndef ImageFilter_hpp
+#define ImageFilter_hpp
+
+#include <algorithm>
+#include <exception>
+#include <utility>
+#include <cmath>
+
+#include "Image.h"
+
+namespace cg
+{
+    namespace filter
+    {
+        enum BorderPolicy { CLAMP_TO_EDGE, MIRROR, REPEAT };
+
+        // use empty namespace for "private" functions
+        namespace
+        {
+            /**
+             * Applies offset to image coordinates.
+             * Guarantees to return valid coordinates even if the offset is
+             * theoretically out of bounds.
+             *
+             * @param image Input image - defines the valid image region.
+             * @param coordinates Input coordinates within the valid image region.
+             * @param offset Offset values that are applied to the input coordinates.
+             * @param border_policy Policy for handling out of bounds coordinates.
+             */
+            template <cg::color_space_t color_space>
+            std::pair<unsigned int, unsigned int> offsetImageCoordinates(
+                image<color_space> const& image,
+                std::pair<unsigned int, unsigned int> coordinates,
+                std::pair<int, int> offset,
+                BorderPolicy border_policy)
+            {
+                if (std::get<0>(coordinates) < -(std::get<0>(offset)) ||
+                    (std::get<0>(coordinates) + std::get<0>(offset)) > image.get_width() ||
+                    std::get<1>(coordinates) < -(std::get<1>(offset)) ||
+                    (std::get<1>(coordinates) + std::get<1>(offset)) > image.get_height())
+                {
+                    int x = static_cast<int>(std::get<0>(coordinates)) + std::get<0>(offset);
+                    int y = static_cast<int>(std::get<1>(coordinates)) + std::get<1>(offset);
+
+                    switch (border_policy)
+                    {
+                    case cg::filter::CLAMP_TO_EDGE:
+                        return std::make_pair(
+                            std::min(std::max(static_cast<int>(std::get<0>(coordinates)) + std::get<0>(offset), 0), static_cast<int>(image.get_width() - 1)),
+                            std::min(std::max(static_cast<int>(std::get<1>(coordinates)) + std::get<1>(offset), 0), static_cast<int>(image.get_height() - 1))
+                        );
+
+                        break;
+
+                    case cg::filter::MIRROR:
+                        ///////
+                        // TODO
+                        //
+                        // Implement a border policy that mirrors out of bounds
+                        // coordinates at the image border.
+                        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Aufgabe_3.5!!!!!!!!!!!!
+                        // ...
+
+
+                        // Mirror X coordinate
+                        if (x < 0) x = -x;                                   // reflect negative side
+                        if (x >= static_cast<int>(image.get_width()))         // reflect positive side
+                            x = 2 * (image.get_width() - 1) - x;
+
+                        // Mirror Y coordinate
+                        if (y < 0) y = -y;                                   // reflect negative side
+                        if (y >= static_cast<int>(image.get_height()))        // reflect positive side
+                            y = 2 * (image.get_height() - 1) - y;
+
+
+                        // if mirrored coords are out of bounds again -> clamp
+
+                        
+                        x = std::min(std::max(x, 0), static_cast<int>(image.get_width() - 1));
+                        y = std::min(std::max(y, 0), static_cast<int>(image.get_height() - 1));
+
+                        return {
+                            static_cast<unsigned int>(x),
+                            static_cast<unsigned int>(y)
+                        };
+
+                        break;
+
+                    case cg::filter::REPEAT:
+                        ///////
+                        // TODO
+                        //
+                        // Implement a border policy that virtually repeats the image for
+                        // out of bounds coordinates.
+                        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Aufgabe_3.5!!!!!!!!!!!!
+                        // ...
+
+                        // Repeat X coordinate
+                         if (x < 0)
+                            x = (x % static_cast<int>(image.get_width()) +
+                                static_cast<int>(image.get_width())) %
+                                static_cast<int>(image.get_width());
+                        else if (x >= static_cast<int>(image.get_width()))
+                            x = x % static_cast<int>(image.get_width());
+
+                        // Repeat Y coordinate
+                        if (y < 0)
+                            y = (y % static_cast<int>(image.get_height()) +
+                                static_cast<int>(image.get_height())) %
+                                static_cast<int>(image.get_height());
+                        else if (y >= static_cast<int>(image.get_height()))
+                            y = y % static_cast<int>(image.get_height());
+
+                        return {
+                            static_cast<unsigned int>(x),
+                            static_cast<unsigned int>(y)
+                        };
+
+                        break;
+
+                    default:
+                        throw std::exception();
+
+                        break;
+                    }
+                }
+                else
+                {
+                    return std::make_pair(
+                        std::get<0>(coordinates) + std::get<0>(offset),
+                        std::get<1>(coordinates) + std::get<1>(offset)
+                    );
+                }
+            }
+        }
+
+        /**
+         * Basic Filter-Kernel class.
+         */
+        class Kernel
+        {
+        public:
+            /**
+             * Construct a new kernel with given extents in x and y direction.
+             * Note that the overal size of the kernel is (2 * extent_X +1) x (2 * extent_Y +1),
+             * i.e. a kernel of extent {2,2} has a size of 5x5.
+             */
+            Kernel(std::pair<unsigned int, unsigned int> extents);
+
+            /**
+             * Get a single entry of the filter kernel.
+             * Coordinates are given relative to the center of the kernel.
+             */
+            float getValue(int x, int y) const;
+
+            float* data();
+
+            float const* data() const;
+
+            /**
+             * Returns the min and max horizontal coordinate within the kernel.
+             * Coordinates are given relative to the center of the kernel,
+             * i.e. -2 and 2 for a kernel with a horizontal extent of 2.
+             */
+            std::pair<int, int> getHorizontalRange() const;
+            /**
+            * Returns the min and max vertical coordinate within the kernel.
+            * Coordinates are given relative to the center of the kernel,
+            * i.e. -2 and 2 for a kernel with a vertical extent of 2.
+            */
+            std::pair<int, int> getVerticalRange() const;
+
+            /**
+             * Sets the value of the kernel for a given position.
+             * Note that the position is given relative to the center of the kernel.
+             */
+            void setValue(int x, int y, float v);
+
+        private:
+            std::vector<float> m_data;
+            std::pair<unsigned int, unsigned int> m_extents;
+
+            /**
+            * Compute actual data index for a position given relative to the center of the kernel.
+            */
+            size_t getDataIndex(int x, int y) const;
+        };
+
+        /** Create 2D gaussian filter kernel. */
+        Kernel build2DGaussianKernel(std::pair<unsigned int, unsigned int> extents, float sigma);
+
+        /** Create 1D horizontal filter kernel for a seperated gaussian filter. */
+        Kernel build1DHorizontalGaussianKernel(unsigned int extent, float sigma);
+
+        /** Create 1D vertical filter kernel for a seperated gaussian filter. */
+        Kernel build1DVerticalGaussianKernel(unsigned int extent, float sigma);
+
+        /** Create a simple 3x3 edge detection filter kernel. */
+        Kernel buildEdgeDetectionKernel();
+
+        /** Apply a filter kernel to an image. */
+        template <color_space_t color_space>
+        image<color_space> filterImage(
+            image<color_space> const& original,
+            Kernel const& filter_kernel,
+            BorderPolicy border_policy = CLAMP_TO_EDGE);
+
+        /** Computes a channelwise absolute value version of a given image.*/
+        template <cg::color_space_t color_space>
+        cg::image<color_space> absValueImage(
+            image<color_space> const& original);
+
+        /** Compute an image blurred with a 2D gaussian filter. */
+        template <cg::color_space_t color_space>
+        cg::image<color_space> gaussian2D(
+            image<color_space> const& original,
+            std::pair<int, int> kernelExtents,
+            float sigma,
+            BorderPolicy borders = CLAMP_TO_EDGE);
+
+        /** Compute an image blurred with a seperated 2D gaussian filter. */
+        template <cg::color_space_t color_space>
+        cg::image<color_space> seperatedGaussian2D(
+            image<color_space> const& original,
+            std::pair<int, int> kernelExtents,
+            float sigma,
+            BorderPolicy borders = CLAMP_TO_EDGE);
+
+        /** Computes an image with extracted edges. */
+        template <cg::color_space_t color_space>
+        cg::image<color_space> edgeDetection2D(
+            image<color_space> const& original,
+            BorderPolicy borders = CLAMP_TO_EDGE);
+    }
+}
+
+template <cg::color_space_t color_space>
+cg::image<color_space> cg::filter::filterImage(image<color_space> const& original, Kernel const& filter_kernel, BorderPolicy border_policy)
+{
+    cg::image<color_space> filtered(original.get_width(), original.get_height());
+
+    for (unsigned int j = 0; j < original.get_height(); ++j)
+    {
+        for (unsigned int i = 0; i < original.get_width(); ++i)
+        {
+            typename cg::image<color_space>::tuple_type pixel_value;
+            for (auto& channel : pixel_value)
+                channel = 0;
+
+            ///////
+            // TODO
+            //
+            // Implement image filtering using the given filter kernel.
+            // Use "pixel_value" as intermediate storage for the computation and store the final result in "filtered".
+            // Iterate over the kernel and use the function "offsetImageCoordinates" to get valid image coordinates for
+            // accessing the original image data.
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Aufgabe_3.1!!!!!!!!!!!!
+
+            // ...
+            std::pair<int,int> kx_range = filter_kernel.getHorizontalRange();
+            int kx_min = kx_range.first;
+            int kx_max = kx_range.second;
+
+            std::pair<int,int> ky_range = filter_kernel.getVerticalRange();
+            int ky_min = ky_range.first;
+            int ky_max = ky_range.second;
+
+            for (int ky = ky_min; ky <= ky_max; ++ky)
+            {
+                for (int kx = kx_min; kx <= kx_max; ++kx)
+                {
+                    // Get valid image coordinates using border policy
+                    auto img_coords = offsetImageCoordinates(
+                        original,
+                        { i, j },
+                        { kx, ky },
+                        border_policy
+                    );
+
+                    // Fetch image pixel
+                    auto const& img_pixel = original(img_coords.first, img_coords.second);
+
+                    // Kernel value at (kx, ky)
+                    float kernel_value = filter_kernel.getValue(kx, ky);
+
+                    // Accumulate per channel
+                    auto pixel_it = pixel_value.begin();
+                    auto img_it   = img_pixel.begin();
+
+                    for (; pixel_it != pixel_value.end(); ++pixel_it, ++img_it)
+                    {
+                        *pixel_it += kernel_value * (*img_it);
+                    }
+                }
+            }
+
+            filtered(i, j) = pixel_value;
+        }
+    }
+
+    return filtered;
+}
+
+template <cg::color_space_t color_space>
+cg::image<color_space> cg::filter::absValueImage(image<color_space> const& original)
+{
+    cg::image<color_space> filtered(original.get_width(), original.get_height());
+
+    for (unsigned int j = 0; j < original.get_height(); ++j)
+    {
+        for (unsigned int i = 0; i < original.get_width(); ++i)
+        {
+            typename cg::image<color_space>::tuple_type pixel_value;
+            typename cg::image<color_space>::tuple_type orig_pixel_value =
+                original(i, j);
+
+            for (int c = 0; c < color_channels<color_space>::value; ++c)
+                pixel_value[c] = std::fabs(orig_pixel_value[c]);
+
+            filtered(i, j) = pixel_value;
+        }
+    }
+
+    return filtered;
+}
+
+template <cg::color_space_t color_space>
+cg::image<color_space> cg::filter::gaussian2D(
+    image<color_space> const& original,
+    std::pair<int, int> kernelExtents,
+    float sigma,
+    BorderPolicy borders)
+{
+    image<color_space_t::RGBA> img = original;
+
+    ///////
+    // TODO
+    //
+    // Generate a 2D gaussian filter kernel with the given extents and
+    // standard deviation sigma.
+    // Use it to filter the original image and store the result in img.
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Aufgabe_3.4!!!!!!!!!!!!
+     
+
+    // build full 2D Gaussian kernel
+    Kernel gaussianKernel = build2DGaussianKernel(
+        {static_cast<unsigned int>(kernelExtents.first),
+         static_cast<unsigned int>(kernelExtents.second)},
+        sigma
+    );
+
+    // apply kernel to the original image
+    img = filterImage(original, gaussianKernel, borders);
+
+    return img;
+}
+
+template <cg::color_space_t color_space>
+cg::image<color_space> cg::filter::seperatedGaussian2D(
+    image<color_space> const& original,
+    std::pair<int, int> kernelExtents,
+    float sigma,
+    BorderPolicy borders)
+{
+    image<color_space_t::RGBA> img = original;
+
+    ///////
+    // TODO
+    //
+    // Generate seperated gaussian filter kernels, with the given extents and
+    // standard deviation sigma.
+    // Use them to filter the original image and store the result in img.
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Aufgabe_3.4!!!!!!!!!!!!
+
+    // build 1D horizontal and vertical Gaussian kernels
+    Kernel horizontalKernel = build1DHorizontalGaussianKernel(
+        static_cast<unsigned int>(kernelExtents.first), sigma);
+    Kernel verticalKernel = build1DVerticalGaussianKernel(
+        static_cast<unsigned int>(kernelExtents.second), sigma);
+
+    // apply horizontal kernel first
+    image<color_space> temp =
+        filterImage(original, horizontalKernel, borders);
+
+    // apply vertical kernel to the intermediate image
+    image<color_space> filtered =
+        filterImage(temp, verticalKernel, borders);
+
+    // store the result in img
+    img = filtered;
+
+
+    return img;
+}
+
+template <cg::color_space_t color_space>
+cg::image<color_space> cg::filter::edgeDetection2D(
+    image<color_space> const& original, BorderPolicy borders)
+{
+    image<color_space> img = original;
+
+    ///////
+    // TODO
+    //
+    // Generate an edge detection filter kernel, use it to filter the
+    // original image. Calculate an absolute value version of this intermediate
+    // image and store the result in img.
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Aufgabe_3.3!!!!!!!!!!!!
+    Kernel edgeKernel = buildEdgeDetectionKernel();
+
+    image<color_space> filtered =
+        filterImage(original, edgeKernel, borders);
+
+    // Take absolute value per channel
+     img = absValueImage(filtered);
+
+    return img;
+}
+
+#endif // !ImageFilter_hpp
